@@ -107,6 +107,23 @@
     .file-label { display: inline-flex; align-items: center; gap: 7px; color: var(--green); font-size: 11px; font-weight: 750; cursor: pointer; }
     .file-label input { display: none; }
     .notice { margin-top: 18px; padding: 13px 15px; border-radius: 12px; color: #63736a; background: #f2f6ef; font-size: 11px; line-height: 1.65; }
+    .intro-preview {
+      display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(220px, .8fr); gap: 0;
+      overflow: hidden; margin-bottom: 18px; border: 1px solid #253a30; border-radius: 18px; color: #f1f1e8;
+      background: #0c100e; box-shadow: var(--shadow);
+    }
+    .intro-video-wrap { min-width: 0; aspect-ratio: 16 / 9; background: #0c100e; }
+    .intro-video { display: block; width: 100%; height: 100%; object-fit: cover; }
+    .intro-copy { display: flex; flex-direction: column; justify-content: center; padding: 24px; }
+    .intro-kicker { color: #d7f65b; font-size: 10px; font-weight: 800; letter-spacing: 1.4px; }
+    .intro-copy h2 { margin: 10px 0 7px; font-size: 22px; letter-spacing: -.5px; }
+    .intro-copy p { margin: 0; color: #a7b3aa; font-size: 11px; line-height: 1.7; }
+    .intro-controls { display: flex; gap: 8px; margin-top: 17px; }
+    .intro-control {
+      min-height: 34px; padding: 0 11px; border: 1px solid #45584e; border-radius: 9px;
+      color: #f1f1e8; background: transparent; font-size: 10px; font-weight: 700;
+    }
+    .intro-control:hover { border-color: #d7f65b; color: #d7f65b; }
     .actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 22px; }
     .btn {
       display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 43px;
@@ -219,6 +236,9 @@
       .two-col .info-tile { display: none; }
       .concept-map { grid-template-columns: 1fr; }
       .map-arrow { transform: rotate(90deg); text-align: center; }
+      .intro-preview { grid-template-columns: 1fr; }
+      .intro-copy { padding: 18px; }
+      .intro-copy h2 { margin-top: 7px; }
     }
     @media (max-width: 520px) {
       .form-grid, .example-grid, .rubric { grid-template-columns: 1fr; }
@@ -437,6 +457,13 @@
 
       function renderSetup() {
         content.innerHTML = titleBlock("START HERE", "배울 개념을 정해볼까요?", "교과서에서 다루는 개념과 학습 자료를 적어주세요. 샘플 단원으로 바로 시작해도 좋아요.", "🌿 나만의 학습") +
+          '<section class="intro-preview" aria-label="개념의 숲 인트로">' +
+          '<div class="intro-video-wrap"><video id="introVideo" class="intro-video" autoplay muted loop playsinline preload="metadata" aria-label="생각의 씨앗 15초 인트로">' +
+          '<source src="./assets/concept-grove-intro.mp4" type="video/mp4">브라우저에서 동영상을 재생할 수 없습니다.</video></div>' +
+          '<div class="intro-copy"><div class="intro-kicker">15 SECOND MOTION STUDY</div><h2>생각의 씨앗</h2>' +
+          '<p>하나의 개념에서 시작해 질문과 관계를 지나, 새로운 상황으로 이어지는 배움의 여정.</p>' +
+          '<div class="intro-controls"><button class="intro-control" id="introSound" type="button" aria-label="인트로 소리 켜기">♪ 소리 켜기</button>' +
+          '<button class="intro-control" id="introReplay" type="button">↻ 처음부터</button></div></div></section>' +
           '<section class="card card-pad"><h2 class="card-title">오늘의 학습 설계</h2><p class="card-desc">입력한 내용은 이 브라우저 안에서만 사용됩니다.</p>' +
           '<div class="form-grid">' +
           '<div class="field"><label for="grade">학년</label><input id="grade" data-field="grade" value="' + escapeHtml(state.form.grade) + '" placeholder="예: 초등학교 5학년"></div>' +
@@ -450,6 +477,25 @@
           '</div><div class="notice">이 앱은 입력한 자료를 바탕으로 학습 기록을 돕는 오프라인형 시제품입니다. AI가 교과서 내용을 자동 분석하거나 문제를 생성하지 않으므로, 다른 단원으로 바꿀 때 설명과 사례도 함께 고쳐 주세요.</div>' +
           actionRow(0, "학습 시작하기", null, false) + '</section>';
         bindTextInputs();
+        const introVideo = document.getElementById("introVideo");
+        const introSound = document.getElementById("introSound");
+        introSound.addEventListener("click", function () {
+          introVideo.muted = !introVideo.muted;
+          introSound.textContent = introVideo.muted ? "♪ 소리 켜기" : "♪ 소리 끄기";
+          introSound.setAttribute("aria-label", introVideo.muted ? "인트로 소리 켜기" : "인트로 소리 끄기");
+          if (!introVideo.paused) return;
+          const playResult = introVideo.play();
+          if (playResult && typeof playResult.catch === "function") {
+           playResult.catch(function () { showToast("재생하려면 영상 안의 재생 버튼을 눌러 주세요."); });
+          }
+        });
+        document.getElementById("introReplay").addEventListener("click", function () {
+          introVideo.currentTime = 0;
+          const playResult = introVideo.play();
+          if (playResult && typeof playResult.catch === "function") {
+           playResult.catch(function () { showToast("영상을 재생할 수 없습니다. 잠시 후 다시 시도해 주세요."); });
+          }
+        });
         const fileInput = document.getElementById("fileInput");
         fileInput.addEventListener("change", function () {
           const file = fileInput.files && fileInput.files[0];

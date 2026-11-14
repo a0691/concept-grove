@@ -1,0 +1,11 @@
+{
+  "name": "concept-grove",
+  "private": true,
+  "description": "Concept Grove learning app and intro-video renderer",
+  "scripts": {
+    "render:intro": "node render_intro.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.65.1"
+  }
+}

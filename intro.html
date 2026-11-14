@@ -1,0 +1,600 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>생각의 씨앗 — 개념의 숲 인트로</title>
+  <style>
+    @font-face {
+      font-family: "Black Han Sans";
+      src: url("./assets/black-han-sans-v24.ttf") format("truetype");
+      font-style: normal;
+      font-weight: 400;
+      font-display: block;
+    }
+
+    :root {
+      --ink: #0c100e;
+      --paper: #f1f1e8;
+      --green: #2f725f;
+      --lime: #d7f65b;
+      background: var(--ink);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: var(--ink);
+    }
+
+    body {
+      display: grid;
+      place-items: center;
+      font-family: "Black Han Sans", sans-serif;
+    }
+
+    canvas {
+      display: block;
+      width: 1920px;
+      height: 1080px;
+      max-width: 100vw;
+      max-height: 100vh;
+      object-fit: contain;
+      background: var(--ink);
+    }
+  </style>
+</head>
+<body>
+  <canvas id="film" width="1920" height="1080" aria-label="개념이 질문과 관계를 거쳐 새로운 상황으로 이어지는 15초 모션 인트로"></canvas>
+  <script>
+    (function () {
+      "use strict";
+
+      const W = 1920;
+      const H = 1080;
+      const DURATION = 15;
+      const BPM = 120;
+      const COLORS = {
+        ink: "#0c100e",
+        paper: "#f1f1e8",
+        green: "#2f725f",
+        lime: "#d7f65b",
+        rule: "#2b3430",
+        dim: "#839088"
+      };
+      const canvas = document.getElementById("film");
+      const ctx = canvas.getContext("2d", { alpha: false });
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function lerp(a, b, t) {
+        return a + (b - a) * t;
+      }
+
+      function exponentialEase(t, duration) {
+        const x = clamp(t / duration, 0, 1);
+        const end = 1 - Math.exp(-7);
+        return (1 - Math.exp(-7 * x)) / end;
+      }
+
+      function spring(t, duration) {
+        const x = clamp(t / duration, 0, 1);
+        const k = 6.5;
+        const end = 1 - (1 + k) * Math.exp(-k);
+        return (1 - (1 + k * x) * Math.exp(-k * x)) / end;
+      }
+
+      function smooth(t) {
+        const x = clamp(t, 0, 1);
+        return x * x * (3 - 2 * x);
+      }
+
+      function line(x1, y1, x2, y2, color, width) {
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = width || 2;
+        ctx.stroke();
+      }
+
+      function circle(x, y, radius, color, fill) {
+        ctx.beginPath();
+        ctx.arc(x, y, Math.max(0, radius), 0, Math.PI * 2);
+        if (fill) {
+          ctx.fillStyle = color;
+          ctx.fill();
+        } else {
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+      }
+
+      function text(value, x, y, size, color, align, maxWidth) {
+        ctx.font = "400 " + size + "px 'Black Han Sans'";
+        ctx.textAlign = align || "left";
+        ctx.textBaseline = "alphabetic";
+        ctx.fillStyle = color;
+        if (maxWidth) ctx.fillText(value, x, y, maxWidth);
+        else ctx.fillText(value, x, y);
+      }
+
+      function trackedText(value, x, y, size, color, spacing) {
+        ctx.font = "400 " + size + "px 'Black Han Sans'";
+        ctx.textBaseline = "alphabetic";
+        ctx.fillStyle = color;
+        let cursor = x;
+        for (const glyph of value) {
+          ctx.fillText(glyph, cursor, y);
+          cursor += ctx.measureText(glyph).width + spacing;
+        }
+      }
+
+      function directionalText(value, x, y, size, color, progress, direction, maxWidth) {
+        const delta = 0.004;
+        const speed = Math.abs(
+          spring((progress + delta) * 0.46, 0.46) -
+          spring((progress - delta) * 0.46, 0.46)
+        ) / (delta * 2);
+        const trail = Math.min(9, speed * 0.025);
+        if (trail > 1.4) {
+          ctx.save();
+          ctx.globalAlpha = 0.13;
+          ctx.filter = "blur(" + Math.min(1.3, trail * 0.1) + "px)";
+          text(value, x - Math.sign(direction) * trail, y, size, color, "left", maxWidth);
+          ctx.restore();
+        }
+        text(value, x, y, size, color, "left", maxWidth);
+      }
+
+      function drawFrame() {
+        ctx.fillStyle = COLORS.ink;
+        ctx.fillRect(0, 0, W, H);
+        ctx.strokeStyle = COLORS.rule;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(64, 58, 1792, 964);
+
+        line(64, 116, 1856, 116, COLORS.rule, 2);
+        line(64, 956, 1856, 956, COLORS.rule, 2);
+        line(960, 116, 960, 956, "#1a211e", 1);
+
+        trackedText("CONCEPT GROVE / MOTION STUDY", 96, 95, 18, COLORS.paper, 1.1);
+        trackedText("15 SEC  ·  120 BPM  ·  16:9", 1500, 95, 15, COLORS.dim, 1);
+        trackedText("질문  →  관계  →  전이", 96, 994, 17, COLORS.dim, 1);
+        trackedText("STUDY FILM / 01", 1824 - 214, 994, 15, COLORS.paper, 1);
+
+        for (let i = 0; i < 30; i += 1) {
+          const x = 96 + i * 58;
+          line(x, 956, x + 24, 956, i % 2 === 0 ? "#36413a" : "#202823", 3);
+        }
+        line(960, 116, 960, 956, "#1a211e", 1);
+      }
+
+      function headlineAt(t, first, second, size, startX, startY, subtitle) {
+        const start = Math.floor(t / 2) * 2;
+        const local = clamp(t - start, 0, 2);
+        const enter = spring(local, 0.42);
+        const exit = smooth((local - 1.62) / 0.36);
+        const enterOffset = start === 0 ? 0 : 700;
+        const x = startX - (1 - enter) * enterOffset - exit * 1300 + local * 9;
+        const y = startY + Math.sin(local * Math.PI) * 10;
+        const scale = 1 - exit * 0.16;
+        const direction = local < 0.42 ? 1 : -1;
+
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(scale, scale);
+        directionalText(first, 0, 0, size, COLORS.paper, local, direction, 920);
+        if (second) {
+          directionalText(second, 0, size * 0.98, size, COLORS.lime, local, direction, 920);
+        }
+        if (subtitle) {
+          const subY = second ? size * 2.16 : size * 1.36;
+          trackedText(subtitle, 5, subY, 20, COLORS.dim, 1.2);
+        }
+        ctx.restore();
+      }
+
+      function drawSeed(t) {
+        const inTime = exponentialEase(t, 0.55);
+        const pulse = 0.5 + 0.5 * Math.cos(t * Math.PI * 4);
+        const radius = 7 + 34 * inTime + pulse * (2 + 3 * inTime);
+        const x = 1404;
+        const y = 538;
+
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(t * 0.15);
+        ctx.beginPath();
+        ctx.ellipse(0, 0, radius * 1.62, radius * 0.7, 0, -0.5, 5.78);
+        ctx.strokeStyle = COLORS.lime;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.restore();
+
+        circle(x, y, radius, COLORS.paper, false);
+        circle(x, y, Math.max(3, radius * 0.19), COLORS.lime, true);
+
+        const lineProgress = exponentialEase(t, 0.7);
+        line(1470, y, 1470 + 230 * lineProgress, y, COLORS.green, 3);
+        circle(1470 + 230 * lineProgress, y, 5, COLORS.lime, true);
+        trackedText("ONE IDEA", 1500, y - 28, 17, COLORS.dim, 1.4);
+      }
+
+      function drawLetters(t) {
+        const p = exponentialEase(t - 2, 0.8);
+        const angle = lerp(0.25, 0.8, p);
+        const x = 1450 + Math.sin((t - 2) * 2) * 24;
+        const y = 520;
+
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(angle);
+        ctx.beginPath();
+        ctx.ellipse(0, 0, lerp(55, 190, p), lerp(55, 122, p), 0, 0, Math.PI * 2);
+        ctx.strokeStyle = COLORS.lime;
+        ctx.lineWidth = lerp(4, 7, p);
+        ctx.stroke();
+        ctx.restore();
+
+        circle(x, y, lerp(10, 28, p), COLORS.green, true);
+        circle(x, y, lerp(4, 10, p), COLORS.lime, true);
+        trackedText("FACT  /  IDEA  /  UNDERSTANDING", 1110, 764, 16, COLORS.dim, 1.2);
+      }
+
+      function drawNetwork(t) {
+        const local = clamp(t - 4, 0, 2);
+        const p = exponentialEase(local, 0.58);
+        const pulse = 0.5 + Math.cos(t * Math.PI * 4) * 0.5;
+        const nodes = [
+          { x: 1196, y: 390, label: "사실" },
+          { x: 1508, y: 526, label: "관계" },
+          { x: 1184, y: 682, label: "개념" },
+          { x: 1630, y: 706, label: "전이" }
+        ];
+        const edges = [[0, 1], [1, 2], [1, 3], [0, 2]];
+        edges.forEach(function (edge, index) {
+          const a = nodes[edge[0]];
+          const b = nodes[edge[1]];
+          const reveal = clamp(p * 1.65 - index * 0.16, 0, 1);
+          line(a.x, a.y, lerp(a.x, b.x, reveal), lerp(a.y, b.y, reveal), COLORS.green, 4);
+        });
+        nodes.forEach(function (node, index) {
+          const radius = 10 + p * (index === 1 ? 34 : 24) + pulse * 4;
+          circle(node.x, node.y, radius, index === 1 ? COLORS.lime : COLORS.paper, true);
+          circle(node.x, node.y, radius + 14, index === 1 ? COLORS.green : COLORS.rule, false);
+          trackedText(node.label, node.x + 42, node.y + 7, 18, COLORS.paper, 1);
+        });
+        line(1100, 804, 1740, 804, COLORS.rule, 2);
+        trackedText("A RELATION IS MORE THAN A LIST", 1100, 842, 16, COLORS.dim, 1.2);
+      }
+
+      function leafPath(size) {
+        ctx.beginPath();
+        ctx.moveTo(-size, 0);
+        ctx.bezierCurveTo(-size * 0.34, -size * 0.78, size * 0.58, -size * 0.68, size, 0);
+        ctx.bezierCurveTo(size * 0.48, size * 0.64, -size * 0.38, size * 0.84, -size, 0);
+        ctx.closePath();
+      }
+
+      function drawLeaf(t) {
+        const local = clamp(t - 6, 0, 2);
+        const turn = exponentialEase(local, 1.25) * 1.15;
+        const fold = 0.24 + 0.76 * Math.abs(Math.cos(turn));
+        const x = 1440 + Math.sin(t * 1.1) * 18;
+        const y = 538;
+
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(-0.15 + turn * 0.3);
+        ctx.scale(fold, 1);
+        leafPath(188);
+        ctx.fillStyle = COLORS.green;
+        ctx.fill();
+        ctx.strokeStyle = COLORS.paper;
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        line(-145, 0, 156, 0, COLORS.lime, 4);
+        for (let i = 0; i < 5; i += 1) {
+          const px = -92 + i * 46;
+          const side = i % 2 === 0 ? -1 : 1;
+          line(px, 0, px + 18, side * (28 + (i % 3) * 7), COLORS.paper, 2);
+        }
+        ctx.restore();
+
+        circle(x - 228, y, 8, COLORS.lime, true);
+        line(x - 222, y, x - 198, y, COLORS.lime, 2);
+        trackedText("PAPER → SPACE", 1192, 800, 17, COLORS.paper, 1.1);
+      }
+
+      function drawChoiceCard(t) {
+        const local = clamp(t - 8, 0, 2);
+        const enter = spring(local, 0.52);
+        const exit = smooth((local - 1.55) / 0.4);
+        const x = lerp(1930, 1132, enter) + exit * 170;
+        const y = 312 + Math.sin(local * Math.PI * 2) * 9;
+        const w = 560;
+        const h = 426;
+
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.strokeStyle = COLORS.paper;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(0, 0, w, h);
+        line(0, 70, w, 70, COLORS.rule, 2);
+        trackedText("FIELD QUESTION / 01", 30, 43, 16, COLORS.lime, 1);
+        text("무엇이 달라지면?", 30, 140, 50, COLORS.paper);
+        const choices = ["환경", "관계", "결과"];
+        choices.forEach(function (choice, index) {
+          const by = 183 + index * 67;
+          const highlight = index === 1 ? exponentialEase(local, 0.7) : 0;
+          if (index === 1) {
+            ctx.fillStyle = COLORS.green;
+            ctx.fillRect(24, by, 512 * highlight, 48);
+          }
+          ctx.strokeStyle = index === 1 ? COLORS.lime : COLORS.rule;
+          ctx.lineWidth = 2;
+          ctx.strokeRect(24, by, 512, 48);
+          circle(49, by + 24, 8, index === 1 && highlight > 0.7 ? COLORS.lime : COLORS.paper, true);
+          text(choice, 75, by + 33, 25, COLORS.paper);
+        });
+        line(30, 398, 530, 398, COLORS.rule, 2);
+        const progress = clamp(local / 1.5, 0, 1);
+        line(30, 410, 30 + 500 * progress, 410, COLORS.lime, 5);
+        ctx.restore();
+      }
+
+      function drawDataBlocks(t) {
+        const local = clamp(t - 10, 0, 2);
+        const p = exponentialEase(local, 0.75);
+        const baseX = 1290;
+        const baseY = 752;
+        const widths = [82, 82, 82, 82];
+        const heights = [145, 228, 185, 308];
+
+        for (let i = 0; i < 4; i += 1) {
+          const x = baseX + i * 112;
+          const h = heights[i] * p + 18;
+          const top = baseY - h;
+          const side = widths[i] * 0.3;
+          ctx.beginPath();
+          ctx.moveTo(x, top);
+          ctx.lineTo(x + side, top - side * 0.62);
+          ctx.lineTo(x + widths[i] + side, top - side * 0.62);
+          ctx.lineTo(x + widths[i], top);
+          ctx.closePath();
+          ctx.fillStyle = i === 3 ? COLORS.lime : COLORS.green;
+          ctx.fill();
+          ctx.beginPath();
+          ctx.moveTo(x + widths[i], top);
+          ctx.lineTo(x + widths[i] + side, top - side * 0.62);
+          ctx.lineTo(x + widths[i] + side, baseY - side * 0.62);
+          ctx.lineTo(x + widths[i], baseY);
+          ctx.closePath();
+          ctx.fillStyle = "#214a3b";
+          ctx.fill();
+          ctx.fillStyle = COLORS.paper;
+          ctx.fillRect(x, top, widths[i], h);
+          line(x + 16, baseY + 28, x + 16, baseY + 43, COLORS.dim, 2);
+        }
+
+        ctx.beginPath();
+        ctx.moveTo(baseX - 20, baseY + 2);
+        ctx.lineTo(baseX + 476, baseY + 2);
+        ctx.strokeStyle = COLORS.paper;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        trackedText("관계가 보이면, 변화도 읽힌다", 1188, 830, 22, COLORS.paper, 1);
+      }
+
+      function drawGrove(t) {
+        const local = clamp(t - 12, 0, 2);
+        const p = exponentialEase(local, 0.78);
+        const centerX = 1470;
+        const centerY = 552;
+        const points = [
+          { x: 0, y: 0, r: 63 },
+          { x: -210, y: -116, r: 38 },
+          { x: 208, y: -126, r: 42 },
+          { x: -232, y: 128, r: 36 },
+          { x: 8, y: 190, r: 42 },
+          { x: 235, y: 132, r: 38 },
+          { x: 5, y: -252, r: 33 }
+        ];
+        const edges = [[0,1],[0,2],[0,3],[0,4],[0,5],[0,6],[1,3],[2,5]];
+        edges.forEach(function (edge, index) {
+          const a = points[edge[0]];
+          const b = points[edge[1]];
+          const progress = clamp(p * 1.7 - index * 0.09, 0, 1);
+          line(centerX + a.x, centerY + a.y, centerX + lerp(a.x, b.x, progress), centerY + lerp(a.y, b.y, progress), index < 5 ? COLORS.green : COLORS.rule, 5);
+        });
+        points.forEach(function (point, index) {
+          const radius = point.r * p + 7;
+          circle(centerX + point.x, centerY + point.y, radius, index === 0 ? COLORS.lime : COLORS.green, true);
+          circle(centerX + point.x, centerY + point.y, radius + 15, index === 0 ? COLORS.paper : COLORS.rule, false);
+        });
+        for (let i = 0; i < 7; i += 1) {
+          const angle = i * Math.PI / 3.5 + t * 0.16;
+          const x = centerX + Math.cos(angle) * 345;
+          const y = centerY + Math.sin(angle) * 277;
+          line(centerX, centerY, x, y, "#334139", 2);
+        }
+        trackedText("ONE IDEA / MANY CONTEXTS", 1202, 850, 17, COLORS.paper, 1);
+      }
+
+      function drawSeedEnd(t) {
+        const local = clamp(t - 14, 0, 1);
+        const p = smooth(local);
+        const x = lerp(1420, 1404, p);
+        const y = lerp(518, 538, p);
+        const radius = lerp(80, 7, p);
+        const titleScale = 1 - p;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.strokeStyle = COLORS.lime;
+        ctx.lineWidth = 7;
+        ctx.stroke();
+        line(x - radius * 0.5, y, x + radius * 0.5, y, COLORS.paper, 3);
+        ctx.restore();
+
+        ctx.save();
+        ctx.translate(150, 610);
+        ctx.scale(titleScale, titleScale);
+        text("개념의 숲", 0, 0, 124, COLORS.paper);
+        ctx.restore();
+        line(150, 664, 150 + 340 * titleScale, 664, COLORS.lime, 6);
+
+        ctx.save();
+        ctx.translate(150, 462);
+        ctx.scale(p, p);
+        text("교과서의", 0, 0, 78, COLORS.paper);
+        text("한 개념에서", 0, 78 * 0.98, 78, COLORS.lime);
+        trackedText("A SMALL IDEA CAN OPEN A NEW WORLD", 5, 78 * 2.16, 20, COLORS.dim, 1.2);
+        ctx.restore();
+
+        circle(x, y, radius * 0.19, COLORS.lime, true);
+        if (local < 0.98) {
+          line(x + radius * 0.9, y, lerp(x + radius * 0.9, 1700, p), y, COLORS.green, 3);
+        }
+      }
+
+      function renderScene(t) {
+        drawFrame();
+        if (t < 2) {
+          headlineAt(t, "교과서의", "한 개념에서", 78, 150, 462, "A SMALL IDEA CAN OPEN A NEW WORLD");
+          drawSeed(t);
+        } else if (t < 4) {
+          headlineAt(t, "개념은", "연결될 때 자란다", 92, 150, 462, "FROM FACTS TO TRANSFERABLE UNDERSTANDING");
+          drawLetters(t);
+        } else if (t < 6) {
+          headlineAt(t, "사실 → 관계", "→ 이해", 77, 150, 454, "FIND THE RELATIONSHIP");
+          drawNetwork(t);
+        } else if (t < 8) {
+          headlineAt(t, "관계가", "형태가 된다", 89, 150, 462, "A FLAT IDEA BECOMES A LIVING MODEL");
+          drawLeaf(t);
+        } else if (t < 10) {
+          headlineAt(t, "무엇이", "달라지면?", 90, 150, 462, "ASK  /  TEST  /  REVISE");
+          drawChoiceCard(t);
+        } else if (t < 12) {
+          headlineAt(t, "하나의 변화가", "전체를 움직인다", 72, 150, 462, "A SYSTEM IS MADE OF RELATIONSHIPS");
+          drawDataBlocks(t);
+        } else if (t < 14) {
+          headlineAt(t, "배움은", "옮겨 쓰는 힘", 91, 150, 462, "NEW CONTEXTS  /  SAME DEEP IDEA");
+          drawGrove(t);
+        } else {
+          drawSeedEnd(t);
+        }
+
+        const beat = Math.floor(t * BPM / 60) % 30;
+        const beatMarkX = 96 + beat * 58;
+        line(beatMarkX, 942, beatMarkX + 24, 942, COLORS.lime, 5);
+      }
+
+      window.seek = function (time) {
+        const t = clamp(Number(time) || 0, 0, DURATION);
+        renderScene(t >= 14.9 ? 0 : t);
+      };
+
+      function addTone(audio, at, frequency, duration, volume, type, endFrequency) {
+        if (at >= DURATION) return;
+        const oscillator = audio.createOscillator();
+        const gain = audio.createGain();
+        oscillator.type = type || "sine";
+        oscillator.frequency.setValueAtTime(Math.max(1, frequency), at);
+        if (endFrequency) {
+          oscillator.frequency.exponentialRampToValueAtTime(Math.max(1, endFrequency), at + duration);
+        }
+        gain.gain.setValueAtTime(0.0001, at);
+        gain.gain.exponentialRampToValueAtTime(volume, at + 0.008);
+        gain.gain.exponentialRampToValueAtTime(0.0001, at + duration);
+        oscillator.connect(gain);
+        gain.connect(audioMaster || audio.destination);
+        oscillator.start(at);
+        oscillator.stop(at + duration + 0.01);
+      }
+
+      let audioMaster;
+
+      window.renderAudioWav = async function () {
+        const sampleRate = 48000;
+        const frameCount = sampleRate * DURATION;
+        const AudioContext = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+        if (!AudioContext) throw new Error("OfflineAudioContext를 지원하지 않는 브라우저입니다.");
+        const audio = new AudioContext(1, frameCount, sampleRate);
+        const master = audio.createGain();
+        master.gain.value = 0.62;
+        master.connect(audio.destination);
+        audioMaster = master;
+
+        for (let beat = 0; beat < 30; beat += 1) {
+          const at = beat * 0.5;
+          addTone(audio, at, 125, 0.18, beat % 4 === 0 ? 0.62 : 0.42, "sine", 42);
+          addTone(audio, at + 0.19, 1100, 0.025, 0.12, "triangle", 720);
+        }
+
+        for (const at of [0, 2, 4, 6, 8, 10, 12, 14]) {
+          addTone(audio, at, 280, 0.32, 0.3, "triangle", 72);
+          addTone(audio, at + 0.01, 720, 0.12, 0.12, "sine", 430);
+        }
+
+        const riser = audio.createOscillator();
+        const riserGain = audio.createGain();
+        riser.type = "sawtooth";
+        riser.frequency.setValueAtTime(90, 11.1);
+        riser.frequency.exponentialRampToValueAtTime(760, 12);
+        riserGain.gain.setValueAtTime(0.0001, 11.1);
+        riserGain.gain.exponentialRampToValueAtTime(0.11, 11.86);
+        riserGain.gain.exponentialRampToValueAtTime(0.0001, 12);
+        riser.connect(riserGain);
+        riserGain.connect(master);
+        riser.start(11.1);
+        riser.stop(12.01);
+
+        const rendered = await audio.startRendering();
+        audioMaster = null;
+        const samples = rendered.getChannelData(0);
+        const wav = new ArrayBuffer(44 + samples.length * 2);
+        const view = new DataView(wav);
+        const write = function (offset, value) {
+          for (let i = 0; i < value.length; i += 1) view.setUint8(offset + i, value.charCodeAt(i));
+        };
+        write(0, "RIFF");
+        view.setUint32(4, 36 + samples.length * 2, true);
+        write(8, "WAVE");
+        write(12, "fmt ");
+        view.setUint32(16, 16, true);
+        view.setUint16(20, 1, true);
+        view.setUint16(22, 1, true);
+        view.setUint32(24, sampleRate, true);
+        view.setUint32(28, sampleRate * 2, true);
+        view.setUint16(32, 2, true);
+        view.setUint16(34, 16, true);
+        write(36, "data");
+        view.setUint32(40, samples.length * 2, true);
+        for (let i = 0; i < samples.length; i += 1) {
+          const clipped = clamp(samples[i], -1, 1);
+          view.setInt16(44 + i * 2, clipped < 0 ? clipped * 32768 : clipped * 32767, true);
+        }
+        let binary = "";
+        const bytes = new Uint8Array(wav);
+        const chunkSize = 0x8000;
+        for (let i = 0; i < bytes.length; i += chunkSize) {
+          binary += String.fromCharCode.apply(null, bytes.subarray(i, Math.min(i + chunkSize, bytes.length)));
+        }
+        return btoa(binary);
+      };
+
+      document.fonts.ready.then(function () { window.seek(0); });
+    }());
+  </script>
+</body>
+</html>
